@@ -14,7 +14,12 @@ Print latest values every 1 second
 #include "esp_log.h"
 #include "driver/i2c_master.h"
 #include <string.h>
+#include "driver/gpio.h"
+
 #include "app_config.h"
+#include "dht11.h"
+
+
 
 #define SENSOR_DATA_QUE_LEN   20
 
@@ -186,27 +191,42 @@ void mpu_task(void *pv)
 
 //dht task
 
-void dht_init(void)
+typedef struct 
 {
-    
+    uint32_t dht_packet_data;
+    uint8_t crc;
+}dht_packet_t;
+
+//#include "soc/gpio_sig_map.h"
+void test_dht_data(void)
+{
+
 }
-
-
 void dht_task(void *pv)
 {
-    /*init for the dht ADC*/    
-    dht_init();
+    /*init for the dht ADC*/  
+    #if 1
+    gpio_config_t led_config = {
+        .mode = GPIO_MODE_OUTPUT,
+        .intr_type = GPIO_INTR_DISABLE,
+        .pin_bit_mask = GPIO_NUM_2,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en  = GPIO_PULLUP_DISABLE,
+    };
+    gpio_config(&led_config);
+    #endif  
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_DHT11;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
-        msg.sens_data.dht_data.temp += 10.0f;
-        if(xQueueSend(data_que,&msg,0) != pdPASS)
-        {
-            ESP_LOGW(DHT,"Queue is full");
-        }
+        // msg.sens_data.dht_data.temp += 10.0f;
+        // if(xQueueSend(data_que,&msg,0) != pdPASS)
+        // {
+        //     ESP_LOGW(DHT,"Queue is full");
+        // }
+
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2000));
     }
         
