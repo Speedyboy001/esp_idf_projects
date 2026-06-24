@@ -16,8 +16,8 @@ Print latest values every 1 second
 #include <string.h>
 #include "driver/gpio.h"
 
-#include "app_config.h"
-#include "dht11.h"
+#include "main.h"
+#include "sensors_init.h"
 
 
 
@@ -205,7 +205,7 @@ void test_dht_data(void)
 void dht_task(void *pv)
 {
     /*init for the dht ADC*/  
-    #if 1
+    #if 0
     gpio_config_t led_config = {
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE,
@@ -218,6 +218,7 @@ void dht_task(void *pv)
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_DHT11;
     TickType_t xLastWakeTime = xTaskGetTickCount();
+    int temperature = 0, humidity = 0;
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
@@ -226,7 +227,8 @@ void dht_task(void *pv)
         // {
         //     ESP_LOGW(DHT,"Queue is full");
         // }
-
+       get_temperature_humidity(&temperature, &humidity);
+        ESP_LOGI(DHT,"TEMP-> %d, HUMID-> %d",temperature,humidity);
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2000));
     }
         
