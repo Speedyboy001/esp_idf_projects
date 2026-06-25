@@ -1,15 +1,21 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#ifndef __APP_CONNFIG_H__
-#define __APP_CONNFIG_H__
-
 #pragma once
 
-#define IF_MPU_TASK     0
-#define IF_DHT_TASK     0
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "esp_log.h"
+#include "driver/i2c_master.h"
+#include <string.h>
+#include "driver/gpio.h"
+
+
+#define IF_MPU_TASK     1
+#define IF_DHT_TASK     1
 #define IF_HCSR_TASK    1
-#define IF_LOGGER_TASK  0
+#define IF_LOGGER_TASK  1
 
 
 #define PIN_HIGH        1
@@ -29,20 +35,6 @@ static const char* LOGGER = "[LOG]";
 #define LOGGER            "[LOG]"
 #endif
 
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#define SENSOR_DATA_QUE_LEN   20
 
 #endif
