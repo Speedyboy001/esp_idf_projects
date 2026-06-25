@@ -70,6 +70,10 @@ typedef struct
     sensor_msg_t latest_hcsr;
 }sensor_database_t;
 
+
+esp_err_t gpio_init(uint64_t pin,gpio_mode_t pin_mode, gpio_pullup_t pull_up_en_dis, gpio_pulldown_t pull_down_en_dis,gpio_int_type_t intr_en);
+
+
 /* MPU TASK FUNC */
 #define MPU_PORT            0
 #define MPU_SCL_PIN         GPIO_NUM_22 
@@ -83,7 +87,7 @@ typedef struct
 esp_err_t mpu_read_from_reg(i2c_master_dev_handle_t i2c_dev, const uint8_t *write_buffer, size_t write_size, uint8_t *read_buffer, size_t read_size, int timeout);
 esp_err_t mpu_write_to_reg(i2c_master_dev_handle_t dv_handle, const uint8_t *buffer, size_t size, int timeout);
 i2c_master_dev_handle_t mpu_init(void);
-void mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle);
+esp_err_t mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle);
 
 
 
@@ -103,17 +107,23 @@ void mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle);
 
 
 void dht_start_signal(void);
-int get_humidity(void);
-int get_temperature(void);
-int get_temperature_humidity(int* temp, int* humdity);
+esp_err_t get_humidity(sensor_msg_t *sensor_data);
+esp_err_t get_temperature(sensor_msg_t *sensor_data);
+esp_err_t get_temperature_humidity(sensor_msg_t *sensor_data);
 int read_data_raw(int *data, int len);
 int read_raw_byte(void);
 
 
 /* HCSR TASK FUNC */
 
+
+#define HCSR_TIMEOUT                            38000
+#define HCSR_SPEED_OF_SOUND_MPS                 343.0f             //ms/s
+#define HCSR_SPEED_OF_LIGHT_IN_CM_SEC           (float)(((HCSR_SPEED_OF_SOUND_MPS) * (100)) / 1000000)
+#define HCSR_TOTAL_DISTANCE_IN_CM(time_taken)   (float)(((HCSR_SPEED_OF_LIGHT_IN_CM_SEC) * (time_taken)) / 2)
+
 #define HCSR_TRIG_PIN   GPIO_NUM_12
 #define HCSR_ECHO_PIN   GPIO_NUM_13
+
 esp_err_t hcsr_init(void);
 esp_err_t hcsr_get_data(float *data);
-esp_err_t gpio_init(uint64_t pin,gpio_mode_t pin_mode, gpio_pullup_t pull_up_en_dis, gpio_pulldown_t pull_down_en_dis,gpio_int_type_t intr_en);

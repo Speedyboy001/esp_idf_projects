@@ -81,10 +81,10 @@ i2c_master_dev_handle_t mpu_init(void)
     return mpu_dv_handle;
 }
 
-void mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle)
+esp_err_t mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle)
 {
-    sensor_msg_t *msg = data;
-    if((msg  == NULL)|| (dv_handle == NULL))return;
+    //sensor_msg_t *msg = data;
+    if((data  == NULL)|| (dv_handle == NULL))return ESP_ERR_NOT_FOUND;
     int16_t ax, ay, az;
     uint8_t store_incoming_data[6] = {0};
     uint8_t reg  = MPU6050_ACCEL_XOUT_H; //acclerometer value
@@ -94,12 +94,12 @@ void mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle)
     ay = (int16_t)((store_incoming_data[2] << 8) | store_incoming_data[3]);
     az = (int16_t)((store_incoming_data[4] << 8) | store_incoming_data[5]);
  
-    msg->sens_data.mpu_dat.ax = (float)ax/16384.0f;
-    msg->sens_data.mpu_dat.ay = (float)ay/16384.0f;
-    msg->sens_data.mpu_dat.az = (float)az/16384.0f;
+    data->sens_data.mpu_dat.ax = (float)ax/16384.0f;
+    data->sens_data.mpu_dat.ay = (float)ay/16384.0f;
+    data->sens_data.mpu_dat.az = (float)az/16384.0f;
 
-    ESP_LOGI(MPU,"RAW X:%d Y:%d Z:%d | G X:%.2f Y:%.2f Z:%.2f",ax,ay,az,msg->sens_data.mpu_dat.ax,msg->sens_data.mpu_dat.ay,msg->sens_data.mpu_dat.az);
-
+    return ESP_OK;
+    //ESP_LOGI(MPU,"RAW X:%d Y:%d Z:%d | G X:%.2f Y:%.2f Z:%.2f",ax,ay,az,msg->sens_data.mpu_dat.ax,msg->sens_data.mpu_dat.ay,msg->sens_data.mpu_dat.az);
 }
 
 #endif
@@ -152,7 +152,7 @@ int read_raw_byte(void)
     return packet; 
 }
 
-int read_data_raw(int *data, int len)
+esp_err_t read_data_raw(int *data, int len)
 {
     dht_start_signal();
     uint32_t start_time = esp_timer_get_time();
@@ -191,7 +191,7 @@ int read_data_raw(int *data, int len)
 }
 
 
-int get_humidity(void)
+int get_humidity(sensor_msg_t *sensor_data)
 {
     int data[5];
     esp_err_t err = read_data_raw(data,5);
@@ -199,10 +199,11 @@ int get_humidity(void)
     {
         return ESP_FAIL;
     }
-    return data[0];
+    sensor_data->sens_data.dht_data.humidity = data[0];
+    return ESP_OK;
 }
 
-int get_temperature(void)
+int get_temperature(sensor_msg_t *sensor_data)
 {
     int data[5];
     esp_err_t err = read_data_raw(data,5);
@@ -210,10 +211,11 @@ int get_temperature(void)
     {
         return ESP_FAIL;
     }
-    return data[2];
+    sensor_data->sens_data.dht_data.temp = data[2];
+    return ESP_OK;
 }
 
-int get_temperature_humidity(int* temp, int* humdity)
+int get_temperature_humidity(sensor_msg_t *sensor_data)
 {
     int data[5];
     esp_err_t err = read_data_raw(data,5);
@@ -221,19 +223,14 @@ int get_temperature_humidity(int* temp, int* humdity)
     {
         return ESP_FAIL;
     }
-    *humdity =  data[0];
-    *temp =  data[2];
+    sensor_data->sens_data.dht_data.humidity =  data[0];
+    sensor_data->sens_data.dht_data.temp =  data[2];
     return ESP_OK;
 }
 
 #endif
 
 #if IF_HCSR_TASK
-
-#define HCSR_TIMEOUT                            38000
-#define HCSR_SPEED_OF_SOUND_MPS            343.0f             //ms/s
-#define HCSR_SPEED_OF_LIGHT_IN_CM_SEC           (float)(((HCSR_SPEED_OF_SOUND_MPS) * (100)) / 1000000)
-#define HCSR_TOTAL_DISTANCE_IN_CM(time_taken)   (float)(((HCSR_SPEED_OF_LIGHT_IN_CM_SEC) * (time_taken)) / 2)
 
 esp_err_t hcsr_init(void)
 {
@@ -283,6 +280,5 @@ esp_err_t hcsr_get_data(float *data)
     *data =  HCSR_TOTAL_DISTANCE_IN_CM(time_count);
     return ESP_OK;
 }
-
 
 #endif

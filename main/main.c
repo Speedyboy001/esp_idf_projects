@@ -17,7 +17,6 @@ QueueHandle_t  g_data_que;
 
 void mpu_task(void *pv)
 {
-
     i2c_master_dev_handle_t dv_handle = mpu_init();
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_MPU6050;
@@ -26,10 +25,10 @@ void mpu_task(void *pv)
     {
         msg.timestamp = xTaskGetTickCount();
         mpu_data_handler(&msg,dv_handle);
-        // if(xQueueSend(g_data_que,&msg,0) != pdPASS)
-        // {
-        //     ESP_LOGW(MPU,"Queue is full");
-        // }
+        if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+        {
+            ESP_LOGW(MPU,"Queue is full");
+        }
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1000));
        // vTaskDelay(pdMS_TO_TICKS(100));
     }   
@@ -37,34 +36,21 @@ void mpu_task(void *pv)
 
 //dht task
 
-typedef struct 
-{
-    uint32_t dht_packet_data;
-    uint8_t crc;
-}dht_packet_t;
-
-//#include "soc/gpio_sig_map.h"
-void test_dht_data(void)
-{
-
-}
 void dht_task(void *pv)
 {
     /*init for the dht*/  
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_DHT11;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    int temperature = 0, humidity = 0;
+    //int temperature = 0, humidity = 0;
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
-        // msg.sens_data.dht_data.temp += 10.0f;
-        // if(xQueueSend(g_data_que,&msg,0) != pdPASS)
-        // {
-        //     ESP_LOGW(DHT,"Queue is full");
-        // }
-        get_temperature_humidity(&temperature, &humidity);
-        ESP_LOGI(DHT,"TEMP-> %d, HUMID-> %d",temperature,humidity);
+        get_temperature_humidity(&msg);
+        if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+        {
+            ESP_LOGW(DHT,"Queue is full");
+        }
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2000));
     }
         
@@ -75,15 +61,21 @@ void hcsr04_task(void *pv)
     /*init for will which which peripheral needed*/    
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_HCSR04;
+    if(hcsr_init() != ESP_OK)
+    {
+        ESP_LOGI(HCSR,"GPIO_INIT FAILED");
+        return;
+    }
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
-        msg.sens_data.hcsr04_data.distance += 5.0f;
+        hcsr_get_data(&msg.sens_data.hcsr04_data.distance);
         if(xQueueSend(g_data_que,&msg,0) != pdPASS)
         {
             ESP_LOGW(HCSR,"Queue is full");
         }
+
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(500));
     }
         
