@@ -84,9 +84,9 @@ esp_err_t gpio_init(uint64_t pin,gpio_mode_t pin_mode, gpio_pullup_t pull_up_en_
 #define MPU6050_WHO_AM_I    0x75
 #define MPU6050_ACCEL_XOUT_H 0x3B
 
-esp_err_t mpu_read_from_reg(i2c_master_dev_handle_t i2c_dev, const uint8_t *write_buffer, size_t write_size, uint8_t *read_buffer, size_t read_size, int timeout);
-esp_err_t mpu_write_to_reg(i2c_master_dev_handle_t dv_handle, const uint8_t *buffer, size_t size, int timeout);
-i2c_master_dev_handle_t mpu_init(void);
+esp_err_t mpu_read_from_reg(i2c_master_dev_handle_t *i2c_dev, const uint8_t *write_buffer, size_t write_size, uint8_t *read_buffer, size_t read_size, int timeout);
+esp_err_t mpu_write_to_reg(i2c_master_dev_handle_t *i2c_dev, const uint8_t *buffer, size_t size, int timeout);
+esp_err_t mpu_init( i2c_master_dev_handle_t *dv_handle);
 esp_err_t mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle);
 
 
@@ -96,7 +96,7 @@ esp_err_t mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle)
 #define DHT_PIN                 GPIO_NUM_5
 
 
-#define DHT_INIT_TIME_US            18
+#define DHT_INIT_TIME_US            18000
 #define DHT_WAIT_TIME_US            40
 #define DHT_TOTAL_WAIT_LOW_US       80
 #define DHT_TOTAL_WAIT_HIGH_US      80
@@ -106,7 +106,7 @@ esp_err_t mpu_data_handler(sensor_msg_t *data,i2c_master_dev_handle_t dv_handle)
 #define DHT_SAMPLE_TIME_US      30
 
 
-void dht_start_signal(void);
+esp_err_t dht_start_signal(void);
 esp_err_t get_humidity(sensor_msg_t *sensor_data);
 esp_err_t get_temperature(sensor_msg_t *sensor_data);
 esp_err_t get_temperature_humidity(sensor_msg_t *sensor_data);
@@ -122,8 +122,8 @@ int read_raw_byte(void);
 #define HCSR_SPEED_OF_LIGHT_IN_CM_SEC           (float)(((HCSR_SPEED_OF_SOUND_MPS) * (100)) / 1000000)
 #define HCSR_TOTAL_DISTANCE_IN_CM(time_taken)   (float)(((HCSR_SPEED_OF_LIGHT_IN_CM_SEC) * (time_taken)) / 2)
 
-#define HCSR_TRIG_PIN   GPIO_NUM_12
-#define HCSR_ECHO_PIN   GPIO_NUM_13
+#define HCSR_TRIG_PIN   GPIO_NUM_27
+#define HCSR_ECHO_PIN   GPIO_NUM_25
 
 esp_err_t hcsr_init(void);
 esp_err_t hcsr_get_data(float *data);

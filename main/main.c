@@ -8,7 +8,7 @@ Print latest values every 1 second
 */
 
 #include <stdio.h>
-#include "main.h"
+#include "app_config.h"
 #include "sensors_init.h"
 
 /*global queue*/
@@ -17,19 +17,26 @@ QueueHandle_t  g_data_que;
 
 void mpu_task(void *pv)
 {
-    i2c_master_dev_handle_t dv_handle = mpu_init();
+    i2c_master_dev_handle_t dv_handle = NULL;
+    if(mpu_init(&dv_handle) != 0)
+    {
+        ESP_LOGE(MPU,"INIT Failed");
+        vTaskDelete(NULL);
+    }
     sensor_msg_t msg = {0};
     msg.sensor_id = SENSOR_MPU6050;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
-        mpu_data_handler(&msg,dv_handle);
-        if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+        if(mpu_data_handler(&msg,dv_handle) == ESP_OK)
         {
-            ESP_LOGW(MPU,"Queue is full");
+            if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+            {
+                ESP_LOGW(MPU,"Queue is full");
+            }
         }
-        vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(1000));
+        vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(100));
        // vTaskDelay(pdMS_TO_TICKS(100));
     }   
 }
@@ -45,11 +52,13 @@ void dht_task(void *pv)
     //int temperature = 0, humidity = 0;
     while (1)
     {
-        msg.timestamp = xTaskGetTickCount();
-        get_temperature_humidity(&msg);
-        if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+        msg.timestamp = xTaskGetTickCount();      
+        if( get_temperature_humidity(&msg) == ESP_OK)
         {
-            ESP_LOGW(DHT,"Queue is full");
+            if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+            {
+                ESP_LOGW(DHT,"Queue is full");
+            }
         }
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(2000));
     }
@@ -63,19 +72,20 @@ void hcsr04_task(void *pv)
     msg.sensor_id = SENSOR_HCSR04;
     if(hcsr_init() != ESP_OK)
     {
-        ESP_LOGI(HCSR,"GPIO_INIT FAILED");
-        return;
+        ESP_LOGE(HCSR,"INIT Failed");
+        vTaskDelete(NULL);
     }
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
         msg.timestamp = xTaskGetTickCount();
-        hcsr_get_data(&msg.sens_data.hcsr04_data.distance);
-        if(xQueueSend(g_data_que,&msg,0) != pdPASS)
-        {
-            ESP_LOGW(HCSR,"Queue is full");
+       if( hcsr_get_data(&msg.sens_data.hcsr04_data.distance) == ESP_OK)
+       {
+            if(xQueueSend(g_data_que,&msg,0) != pdPASS)
+            {
+                ESP_LOGW(HCSR,"Queue is full");
+            }
         }
-
         vTaskDelayUntil(&xLastWakeTime,pdMS_TO_TICKS(500));
     }
         
@@ -90,11 +100,11 @@ static void print_logger_data(const sensor_database_t *sens_db)
     }
     if(sens_db->latest_dht.sensor_id == SENSOR_DHT11)
     {
-        ESP_LOGI(LOGGER, "DHT_SENSOR VAL - %.2f",sens_db->latest_dht.sens_data.dht_data.temp);
+        ESP_LOGI(LOGGER, "TEMPERATURE - %.2f, HUMIDITY - %.2f ",sens_db->latest_dht.sens_data.dht_data.temp, sens_db->latest_dht.sens_data.dht_data.humidity);
     }
     if(sens_db->latest_hcsr.sensor_id == SENSOR_HCSR04)
     {
-        ESP_LOGI(LOGGER, "HCSR04_SENSOR VAL - %.2f",sens_db->latest_hcsr.sens_data.hcsr04_data.distance);
+        ESP_LOGI(LOGGER, "DISTANCE - %.2f",sens_db->latest_hcsr.sens_data.hcsr04_data.distance);
     }
 }
 
@@ -103,6 +113,8 @@ void logger_task(void *pv)
     sensor_msg_t msg = {0};
     sensor_database_t sensor_db = {0};
     sensor_db.latest_mpu.sensor_id = SENSOR_INVALID;
+    sensor_db.latest_dht.sensor_id = SENSOR_INVALID;
+    sensor_db.latest_hcsr.sensor_id = SENSOR_INVALID;
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
